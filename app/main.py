@@ -193,10 +193,13 @@ async def watermark(
     name = _safe_name(file.filename, "input.pdf")
     body = await file.read()
     files = [("files", (name, body, "application/pdf"))]
+    # Note: this Gotenberg build's pdfcpu-backed watermark route requires
+    # watermarkOptions values to be JSON *strings*, not numbers/ints -- numeric
+    # JSON values are rejected with "form field 'watermarkOptions' is invalid".
     data = {
         "watermarkSource": "text",
         "watermarkExpression": text,
-        "watermarkOptions": f'{{"opacity":{opacity},"rotation":{rotation}}}',
+        "watermarkOptions": f'{{"opacity":"{opacity}","rotation":"{rotation}"}}',
     }
     return await _proxy("/forms/pdfengines/watermark", files, data)
 
