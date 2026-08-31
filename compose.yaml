@@ -1,0 +1,15 @@
+services:
+  gotenberg-ui:
+    build: .
+    container_name: gotenberg-ui
+    restart: unless-stopped
+    environment:
+      - GOTENBERG_URL=http://gotenberg:3000
+    ports:
+      - "3003:8000"
+    networks:
+      - gotenberg_default
+
+networks:
+  gotenberg_default:
+    external: true

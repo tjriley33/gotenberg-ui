@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gotenberg — Document Press</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f6f2e8;
+    --paper-deep: #efe9d9;
+    --card: #fffdf7;
+    --ink: #23241f;
+    --ink-soft: #6b6656;
+    --line: #ddd4b8;
+    --stamp: #b23a2e;
+    --stamp-dark: #8f2d24;
+    --stamp-soft: rgba(178, 58, 46, 0.10);
+    --ok: #3d6b4f;
+    --radius: 3px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 15px;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(35,36,31,0.05) 1px, transparent 0);
+    background-size: 22px 22px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header { margin-bottom: 36px; }
+  .kicker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--stamp);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .kicker::before {
+    content: "";
+    width: 7px; height: 7px;
+    background: var(--stamp);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 40px;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--ink-soft);
+    margin: 0;
+    font-size: 14.5px;
+    max-width: 46ch;
+  }
+  header p code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--paper-deep);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 13px;
+  }
+
+  /* Folder tabs */
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 0;
+    overflow-x: auto;
+  }
+  nav.tabs button {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--paper-deep);
+    border: 2px solid var(--ink);
+    border-bottom: none;
+    color: var(--ink-soft);
+    padding: 9px 16px 8px;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    position: relative;
+    top: 2px;
+    white-space: nowrap;
+  }
+  nav.tabs button.active {
+    background: var(--card);
+    color: var(--ink);
+    top: 2px;
+    border-bottom: 2px solid var(--card);
+  }
+  nav.tabs button:hover:not(.active) { color: var(--ink); }
+
+  .sheet {
+    background: var(--card);
+    border: 2px solid var(--ink);
+    border-radius: 0 6px 6px 6px;
+    padding: 32px;
+    box-shadow: 0 2px 0 rgba(35,36,31,0.06);
+  }
+  .panel { display: none; }
+  .panel.active { display: block; animation: rise 0.18s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+  .panel h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .panel .sub {
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    margin: 0 0 20px;
+  }
+
+  .drop {
+    border: 2px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    background: repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(35,36,31,0.015) 10px, rgba(35,36,31,0.015) 20px);
+  }
+  .drop.drag { border-color: var(--stamp); background: var(--stamp-soft); }
+  .drop .glyph { font-size: 26px; margin-bottom: 8px; }
+  .drop .main { font-size: 14px; font-weight: 500; }
+  .drop .hint { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; font-family: 'IBM Plex Mono', monospace; }
+  .drop input { display: none; }
+
+  .filelist { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .filerow {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    background: var(--paper-deep);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 7px 10px;
+  }
+  .filerow .n { color: var(--stamp); font-weight: 500; }
+  .filerow .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .filerow .size { color: var(--ink-soft); }
+  .filerow button {
+    background: none; border: none; color: var(--ink-soft); cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 0 2px;
+  }
+  .filerow button:hover { color: var(--stamp); }
+
+  .row { display: flex; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+  .field label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+  .field input[type=text], .field input[type=number], .field select {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--line);
+    border-radius: 2px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--stamp); outline-offset: 1px; border-color: var(--stamp); }
+  .checkfield { display: flex; align-items: center; gap: 8px; flex-direction: row; }
+  .checkfield input { width: 16px; height: 16px; }
+
+  .stampbtn {
+    margin-top: 22px;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: #fff8ee;
+    background: var(--stamp);
+    border: none;
+    border-radius: 4px;
+    padding: 13px 26px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform .08s ease, background .15s;
+  }
+  .stampbtn:hover { background: var(--stamp-dark); }
+  .stampbtn:active { transform: scale(0.97) translateY(1px); }
+  .stampbtn:disabled { background: var(--ink-soft); cursor: wait; }
+  .stampbtn .ring {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff8ee;
+    animation: spin .7s linear infinite; display: none;
+  }
+  .stampbtn.busy .ring { display: inline-block; }
+  .stampbtn.busy .label { opacity: 0.85; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .receipt {
+    margin-top: 20px;
+    border-top: 2px dashed var(--line);
+    padding-top: 18px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .receipt.show { display: flex; }
+  .receipt .ok {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+  }
+  .receipt .ok .tag {
+    color: var(--ok);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .receipt .ok .fname { color: var(--ink-soft); display: block; margin-top: 2px; }
+  .receipt a.dl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 9px 16px;
+    border-radius: 3px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .receipt a.dl:hover { background: var(--stamp); }
+
+  .error {
+    margin-top: 16px;
+    border: 1.5px solid var(--stamp);
+    background: var(--stamp-soft);
+    color: var(--stamp-dark);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    padding: 10px 12px;
+    border-radius: 3px;
+    display: none;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .error.show { display: block; }
+
+  footer {
+    margin-top: 28px;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  footer a { color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stampbtn:active { transform: none; }
+    .panel.active { animation: none; }
+    .stampbtn .ring { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Gotenberg / self-hosted</div>
+    <h1>The Document Press</h1>
+    <p>A hand-crank front end for the <code>gotenberg</code> conversion API — convert, merge, split, and stamp PDFs without writing a script.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-panel="convert">01 Convert</button>
+    <button class="tab" data-panel="merge">02 Merge</button>
+    <button class="tab" data-panel="split">03 Split</button>
+    <button class="tab" data-panel="pdfa">04 PDF/A</button>
+    <button class="tab" data-panel="watermark">05 Watermark</button>
+  </nav>
+
+  <div class="sheet">
+
+    <!-- CONVERT -->
+    <section class="panel active" id="panel-convert">
+      <h2>Convert to PDF</h2>
+      <p class="sub">Markdown, HTML, or any office format LibreOffice reads (docx, xlsx, pptx, odt, rtf, csv…) &rarr; PDF.</p>
+      <div class="drop" data-drop="convert">
+        <div class="glyph">&#128196;</div>
+        <div class="main">Drop a file here, or click to browse</div>
+        <div class="hint">.md · .html · .docx · .xlsx · .pptx · .odt · …</div>
+        <input type="file" data-input="convert">
+      </div>
+      <div class="filelist" data-filelist="convert"></div>
+      <button class="stampbtn" data-submit="convert"><span class="ring"></span><span class="label">Convert &rarr; PDF</span></button>
+      <div class="error" data-error="convert"></div>
+      <div class="receipt" data-receipt="convert"></div>
+    </section>
+
+    <!-- MERGE -->
+    <section class="panel" id="panel-merge">
+      <h2>Merge PDFs</h2>
+      <p class="sub">Upload two or more PDFs. They're combined in the order shown below.</p>
+      <div class="drop" data-drop="merge">
+        <div class="glyph">&#128209;</div>
+        <div class="main">Drop PDFs here, or click to browse</div>
+        <div class="hint">multiple files supported</div>
+        <input type="file" accept="application/pdf" multiple data-input="merge">
+      </div>
+      <div class="filelist" data-filelist="merge"></div>
+      <button class="stampbtn" data-submit="merge"><span class="ring"></span><span class="label">Merge PDFs</span></button>
+      <div class="error" data-error="merge"></div>
+      <div class="receipt" data-receipt="merge"></div>
+    </section>
+
+    <!-- SPLIT -->
+    <section class="panel" id="panel-split">
+      <h2>Split a PDF</h2>
+      <p class="sub">Split by fixed intervals, or pull specific page ranges.</p>
+      <div class="drop" data-drop="split">
+        <div class="glyph">&#9986;&#65039;</div>
+        <div class="main">Drop one PDF here, or click to browse</div>
+        <div class="hint">single file</div>
+        <input type="file" accept="application/pdf" data-input="split">
+      </div>
+      <div class="filelist" data-filelist="split"></div>
+      <div class="row">
+        <div class="field">
+          <label>Mode</label>
+          <select data-field="splitMode">
+            <option value="intervals">Intervals — every N pages</option>
+            <option value="pages">Pages — specific ranges</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-splitspan-label>Pages per file</label>
+          <input type="text" data-field="splitSpan" value="1" placeholder="e.g. 1">
+        </div>
+        <div class="field" data-unify-field style="display:none;">
+          <label>&nbsp;</label>
+          <div class="checkfield"><input type="checkbox" data-field="splitUnify" id="unify"><label for="unify" style="text-transform:none;font-family:'Inter',sans-serif;font-size:13px;">Combine results into one PDF</label></div>
+        </div>
+      </div>
+      <button class="stampbtn" data-submit="split"><span class="ring"></span><span class="label">Split PDF</span></button>
+      <div class="error" data-error="split"></div>
+      <div class="receipt" data-receipt="split"></div>
+    </section>
+
+    <!-- PDF/A -->
+    <section class="panel" id="panel-pdfa">
+      <h2>Convert to PDF/A or PDF/UA</h2>
+      <p class="sub">Archival and accessibility formats, for long-term storage or compliance.</p>
+      <div class="drop" data-drop="pdfa">
+        <div class="glyph">&#127760;</div>
+        <div class="main">Drop one PDF here, or click to browse</div>
+        <div class="hint">single file</div>
+        <input type="file" accept="application/pdf" data-input="pdfa">
+      </div>
+      <div class="filelist" data-filelist="pdfa"></div>
+      <div class="row">
+        <div class="field">
+          <label>PDF/A level</label>
+          <select data-field="pdfa">
+            <option value="">— none —</option>
+            <option value="PDF/A-1b">PDF/A-1b</option>
+            <option value="PDF/A-2b" selected>PDF/A-2b</option>
+            <option value="PDF/A-3b">PDF/A-3b</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <div class="checkfield"><input type="checkbox" data-field="pdfua" id="pdfua"><label for="pdfua" style="text-transform:none;font-family:'Inter',sans-serif;font-size:13px;">Also enforce PDF/UA</label></div>
+        </div>
+      </div>
+      <button class="stampbtn" data-submit="pdfa"><span class="ring"></span><span class="label">Convert</span></button>
+      <div class="error" data-error="pdfa"></div>
+      <div class="receipt" data-receipt="pdfa"></div>
+    </section>
+
+    <!-- WATERMARK -->
+    <section class="panel" id="panel-watermark">
+      <h2>Watermark a PDF</h2>
+      <p class="sub">Stamp repeating text behind the content of every page.</p>
+      <div class="drop" data-drop="watermark">
+        <div class="glyph">&#128273;</div>
+        <div class="main">Drop one PDF here, or click to browse</div>
+        <div class="hint">single file</div>
+        <input type="file" accept="application/pdf" data-input="watermark">
+      </div>
+      <div class="filelist" data-filelist="watermark"></div>
+      <div class="row">
+        <div class="field" style="flex:2;">
+          <label>Text</label>
+          <input type="text" data-field="text" value="CONFIDENTIAL" placeholder="e.g. DRAFT">
+        </div>
+        <div class="field">
+          <label>Opacity (0–1)</label>
+          <input type="number" data-field="opacity" value="0.25" step="0.05" min="0.05" max="1">
+        </div>
+        <div class="field">
+          <label>Rotation (deg)</label>
+          <input type="number" data-field="rotation" value="45" step="5">
+        </div>
+      </div>
+      <button class="stampbtn" data-submit="watermark"><span class="ring"></span><span class="label">Stamp PDF</span></button>
+      <div class="error" data-error="watermark"></div>
+      <div class="receipt" data-receipt="watermark"></div>
+    </section>
+
+  </div>
+
+  <footer>gotenberg-ui &middot; proxies <a href="https://gotenberg.dev/docs" target="_blank" rel="noopener">Gotenberg</a> on K10 &middot; no data is retained</footer>
+</div>
+
+<script>
+(() => {
+  const state = { convert: [], merge: [], split: [], pdfa: [], watermark: [] };
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    });
+  });
+
+  // Split mode toggles which controls are relevant
+  const splitModeSel = document.querySelector('[data-field="splitMode"]');
+  const spanLabel = document.querySelector('[data-splitspan-label]');
+  const spanInput = document.querySelector('#panel-split [data-field="splitSpan"]');
+  const unifyField = document.querySelector('[data-unify-field]');
+  function syncSplitUI() {
+    if (splitModeSel.value === 'pages') {
+      spanLabel.textContent = 'Page ranges';
+      spanInput.placeholder = 'e.g. 1-3,5';
+      unifyField.style.display = '';
+    } else {
+      spanLabel.textContent = 'Pages per file';
+      spanInput.placeholder = 'e.g. 1';
+      unifyField.style.display = 'none';
+    }
+  }
+  splitModeSel.addEventListener('change', syncSplitUI);
+  syncSplitUI();
+
+  function fmtSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  function renderFiles(key) {
+    const list = document.querySelector(`[data-filelist="${key}"]`);
+    list.innerHTML = '';
+    state[key].forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'filerow';
+      row.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><span class="name">${f.name}</span><span class="size">${fmtSize(f.size)}</span><button type="button" aria-label="Remove">&times;</button>`;
+      row.querySelector('button').addEventListener('click', () => {
+        state[key].splice(i, 1);
+        renderFiles(key);
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function addFiles(key, fileListLike, multiple) {
+    const incoming = Array.from(fileListLike);
+    if (!multiple) {
+      state[key] = incoming.slice(0, 1);
+    } else {
+      state[key] = state[key].concat(incoming);
+    }
+    renderFiles(key);
+  }
+
+  // Wire up each drop zone
+  document.querySelectorAll('[data-drop]').forEach(zone => {
+    const key = zone.dataset.drop;
+    const input = zone.querySelector('input[type=file]');
+    const multiple = input.multiple;
+
+    zone.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => addFiles(key, input.files, multiple));
+
+    ['dragenter', 'dragover'].forEach(evt =>
+      zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.add('drag'); }));
+    ['dragleave', 'drop'].forEach(evt =>
+      zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.remove('drag'); }));
+    zone.addEventListener('drop', e => {
+      if (e.dataTransfer.files.length) addFiles(key, e.dataTransfer.files, multiple);
+    });
+  });
+
+  function filenameFromDisposition(disposition, fallback) {
+    if (!disposition) return fallback;
+    const m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    return m ? decodeURIComponent(m[1]) : fallback;
+  }
+
+  async function submit(key, path, buildBody) {
+    const btn = document.querySelector(`[data-submit="${key}"]`);
+    const errBox = document.querySelector(`[data-error="${key}"]`);
+    const receipt = document.querySelector(`[data-receipt="${key}"]`);
+    errBox.classList.remove('show');
+    receipt.classList.remove('show');
+
+    if (state[key].length === 0) {
+      errBox.textContent = 'Add a file first.';
+      errBox.classList.add('show');
+      return;
+    }
+
+    const body = buildBody();
+    btn.disabled = true;
+    btn.classList.add('busy');
+
+    try {
+      const resp = await fetch(path, { method: 'POST', body });
+      if (!resp.ok) {
+        let detail = 'Request failed (' + resp.status + ')';
+        try {
+          const j = await resp.json();
+          detail = j.detail || detail;
+        } catch (_) { /* not json */ }
+        throw new Error(detail);
+      }
+      const blob = await resp.blob();
+      const disposition = resp.headers.get('content-disposition');
+      const fallbackName = key + '-result' + (blob.type.includes('zip') ? '.zip' : '.pdf');
+      const filename = filenameFromDisposition(disposition, fallbackName);
+      const url = URL.createObjectURL(blob);
+
+      receipt.innerHTML = `
+        <div class="ok"><span class="tag">Done</span><span class="fname">${filename}</span></div>
+        <a class="dl" href="${url}" download="${filename}">Download</a>`;
+      receipt.classList.add('show');
+    } catch (err) {
+      errBox.textContent = String(err.message || err);
+      errBox.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('busy');
+    }
+  }
+
+  document.querySelector('[data-submit="convert"]').addEventListener('click', () => {
+    submit('convert', '/api/convert', () => {
+      const fd = new FormData();
+      fd.append('file', state.convert[0]);
+      return fd;
+    });
+  });
+
+  document.querySelector('[data-submit="merge"]').addEventListener('click', () => {
+    submit('merge', '/api/merge', () => {
+      const fd = new FormData();
+      state.merge.forEach(f => fd.append('files', f));
+      return fd;
+    });
+  });
+
+  document.querySelector('[data-submit="split"]').addEventListener('click', () => {
+    submit('split', '/api/split', () => {
+      const fd = new FormData();
+      fd.append('file', state.split[0]);
+      fd.append('splitMode', document.querySelector('[data-field="splitMode"]').value);
+      fd.append('splitSpan', document.querySelector('#panel-split [data-field="splitSpan"]').value);
+      fd.append('splitUnify', document.querySelector('[data-field="splitUnify"]').checked);
+      return fd;
+    });
+  });
+
+  document.querySelector('[data-submit="pdfa"]').addEventListener('click', () => {
+    submit('pdfa', '/api/pdfa', () => {
+      const fd = new FormData();
+      fd.append('file', state.pdfa[0]);
+      fd.append('pdfa', document.querySelector('[data-field="pdfa"]').value);
+      fd.append('pdfua', document.querySelector('[data-field="pdfua"]').checked);
+      return fd;
+    });
+  });
+
+  document.querySelector('[data-submit="watermark"]').addEventListener('click', () => {
+    submit('watermark', '/api/watermark', () => {
+      const fd = new FormData();
+      fd.append('file', state.watermark[0]);
+      fd.append('text', document.querySelector('#panel-watermark [data-field="text"]').value);
+      fd.append('opacity', document.querySelector('[data-field="opacity"]').value);
+      fd.append('rotation', document.querySelector('[data-field="rotation"]').value);
+      return fd;
+    });
+  });
+})();
+</script>
+</body>
+</html>
